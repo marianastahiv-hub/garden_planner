@@ -65,10 +65,23 @@ class _AuthScreenState extends State<AuthScreen> {
     ));
   }
 
-  void _forgotPassword() {
-    if (mounted) {
+  Future<void> _forgotPassword() async {
+    final email = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: _paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => const _PasswordRecoverySheet(),
+    );
+
+    if (email != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password recovery will be available later.')),
+        const SnackBar(
+          content: Text('Demo only: no recovery email was sent.'),
+        ),
       );
     }
   }
@@ -125,6 +138,99 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
+}
+
+class _PasswordRecoverySheet extends StatefulWidget {
+  const _PasswordRecoverySheet();
+
+  @override
+  State<_PasswordRecoverySheet> createState() => _PasswordRecoverySheetState();
+}
+
+class _PasswordRecoverySheetState extends State<_PasswordRecoverySheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  void _continue() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.of(context).pop(_emailController.text.trim());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            22,
+            12,
+            22,
+            MediaQuery.viewInsetsOf(context).bottom + 20,
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDDE4DD),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Reset Password',
+                  style: TextStyle(
+                    fontFamily: 'Serif',
+                    fontSize: 23,
+                    color: Color(0xFF1E3326),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Enter the email address connected to your account.',
+                  style: TextStyle(color: Colors.black54, height: 1.4),
+                ),
+                const SizedBox(height: 18),
+                const _Label('Email Address'),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: _emailController,
+                  autofocus: true,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _continue(),
+                  decoration: _inputDecoration('name@example.com'),
+                  validator: _validateEmail,
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _continue,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _green,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Continue'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _Label extends StatelessWidget {
