@@ -63,6 +63,7 @@ Widget _screenForIndex(int index) {
   switch (index) {
     case 0:
       return DashboardScreen(
+        userName: _profileName,
         onOpenZones: () => setState(() => _currentIndex = 1),
         onOpenPlants: () => setState(() => _currentIndex = 2),
         onOpenTasks: () => setState(() => _currentIndex = 3),
@@ -105,8 +106,6 @@ Widget _screenForIndex(int index) {
   Widget build(BuildContext context) {
     if (!_isAuthenticated) {
       return AuthScreen(
-        savedEmail: _profilePassword.isEmpty ? null : _profileEmail,
-        savedPassword: _profilePassword.isEmpty ? null : _profilePassword,
         onAuthenticated: (account) => setState(() {
           _profileName = account.name;
           _profileEmail = account.email;

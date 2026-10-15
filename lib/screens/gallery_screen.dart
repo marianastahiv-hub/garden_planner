@@ -780,4 +780,3 @@ int _weekNumber(DateTime date) {
   );
   return (dayOfYear ~/ 7) + 1;
 }
-

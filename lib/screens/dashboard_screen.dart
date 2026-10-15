@@ -10,11 +10,13 @@ const _paper = Color(0xFFF9F9F7);
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
     super.key,
+    required this.userName,
     required this.onOpenZones,
     required this.onOpenPlants,
     required this.onOpenTasks,
   });
 
+  final String userName;
   final VoidCallback onOpenZones;
   final VoidCallback onOpenPlants;
   final VoidCallback onOpenTasks;
@@ -36,13 +38,13 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Hello, Garden Keeper', style: TextStyle(color: Color(0xFF68766D), fontSize: 14)),
                           SizedBox(height: 3),
-                          Text('Sarah Jenkins', style: TextStyle(fontFamily: 'Serif', fontSize: 25, color: _ink)),
+                          Text(userName, style: TextStyle(fontFamily: 'Serif', fontSize: 25, color: _ink)),
                         ],
                       ),
                     ),
