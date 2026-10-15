@@ -114,16 +114,6 @@ class _AddZoneSheetState extends State<AddZoneSheet> {
                 },
               ),
             ),
-            const SizedBox(height: 16),
-            _PlantChips(
-              plants: _availablePlants,
-              selected: _plants,
-              onChanged: (plant, selected) {
-                setState(() {
-                  selected ? _plants.add(plant) : _plants.remove(plant);
-                });
-              },
-            ),
             const SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
@@ -269,35 +259,6 @@ class _FieldLabel extends StatelessWidget {
           const SizedBox(height: 6),
           child,
         ],
-      );
-}
-
-class _PlantChips extends StatelessWidget {
-  const _PlantChips({
-    required this.plants,
-    required this.selected,
-    required this.onChanged,
-  });
-
-  final List<String> plants;
-  final Set<String> selected;
-  final void Function(String plant, bool isSelected) onChanged;
-
-  @override
-  Widget build(BuildContext context) => Wrap(
-        spacing: 6,
-        runSpacing: 7,
-        children: plants.map((plant) {
-          final isSelected = selected.contains(plant);
-          return FilterChip(
-            label: Text(plant, style: const TextStyle(fontSize: 11)),
-            selected: isSelected,
-            showCheckmark: false,
-            backgroundColor: const Color(0xFFE3EEDF),
-            selectedColor: const Color(0xFFA5CC96),
-            onSelected: (value) => onChanged(plant, value),
-          );
-        }).toList(),
       );
 }
 

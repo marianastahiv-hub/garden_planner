@@ -14,7 +14,7 @@ class GardenStore extends ChangeNotifier {
           plants: ['Parsley', 'Thyme']),
       _zone('3', 'Front Yard', 'Mixed Soil', 80, const Color(0xFFD2D5CC), 16, 152, 145, 100,
           plants: ['Rosemary']),
-      _zone('4', 'Orchard', 'Clay Silt', 800, const Color(0xFFBDD8C1), 174, 152, 145, 170,
+      _zone('4', 'Orchard', 'Clay Silt', 800, const Color(0xFFBDD8C1), 174, 152, 145, 100,
           plants: ['Thyme'], isActive: false),
       _zone('5', 'Indoor Loft', 'Potting Mix', 35, const Color(0xFFBFD0D5), 16, 262, 95, 100,
           plants: ['Mint']),

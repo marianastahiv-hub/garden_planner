@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/garden_zone.dart';
-import 'add_zone.dart';
+
 
 class EditZoneSheet extends StatefulWidget {
   const EditZoneSheet({super.key, required this.zone});
@@ -141,25 +141,24 @@ class _EditZoneSheetState extends State<EditZoneSheet> {
               decoration: decoration.copyWith(suffixText: 'sq m'),
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 6,
-              runSpacing: 7,
-              children: _availablePlants.map((plant) {
-                final selected = _plants.contains(plant);
-                return FilterChip(
-                  label: Text(plant, style: const TextStyle(fontSize: 11)),
-                  selected: selected,
-                  showCheckmark: false,
-                  backgroundColor: const Color(0xFFE3EEDF),
-                  selectedColor: const Color(0xFFA5CC96),
-                  onSelected: (value) {
-                    setState(() {
-                      value ? _plants.add(plant) : _plants.remove(plant);
-                    });
-                  },
-                );
-              }).toList(),
-            ),
+            if (_plants.isEmpty)
+              const Text(
+                'No plants added yet',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+              )
+            else
+              Wrap(
+                spacing: 6,
+                runSpacing: 7,
+                children: _plants.map((plant) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3EEDF),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(plant, style: const TextStyle(fontSize: 11)),
+                )).toList(),
+              ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
