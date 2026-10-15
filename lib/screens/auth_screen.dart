@@ -7,12 +7,8 @@ class AuthScreen extends StatefulWidget {
   const AuthScreen({
     super.key,
     required this.onAuthenticated,
-    this.savedEmail,
-    this.savedPassword,
   });
   final ValueChanged<({String name, String email, String password})> onAuthenticated;
-  final String? savedEmail;
-  final String? savedPassword;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -27,12 +23,6 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscurePassword = true;
 
   @override
-  void initState() {
-    super.initState();
-    if (widget.savedEmail != null) _email.text = widget.savedEmail!;
-  }
-
-  @override
   void dispose() {
     _name.dispose();
     _email.dispose();
@@ -42,25 +32,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    if (!_createAccount && widget.savedEmail != null &&
-        (_email.text.trim().toLowerCase() != widget.savedEmail!.toLowerCase() ||
-            _password.text != widget.savedPassword)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email or password is incorrect.')),
-      );
-      return;
-    }
-    if (!_createAccount && widget.savedEmail == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Create an account to get started.')),
-      );
-      return;
-    }
     widget.onAuthenticated((
-      name: _createAccount && _name.text.trim().isNotEmpty
-          ? _name.text.trim()
-          : 'Sarah Jenkins',
-      email: _email.text.trim(),
+      name: _name.text.trim(),
+      email: _createAccount ? _email.text.trim() : 'hello@gardenlover.com',
       password: _password.text,
     ));
   }
@@ -106,16 +80,30 @@ class _AuthScreenState extends State<AuthScreen> {
                     const Text('Your mindful garden companion', style: TextStyle(color: Color(0xFF68766D))),
                   ])),
                   const SizedBox(height: 38),
-                  if (_createAccount) ...[
-                    const _Label('Your Name'),
+                  ...[
+                    _Label(_createAccount ? 'Your Name' : 'Nickname'),
                     const SizedBox(height: 6),
-                    TextFormField(controller: _name, textCapitalization: TextCapitalization.words, decoration: _inputDecoration('Sarah Jenkins'), validator: (value) => value == null || value.trim().isEmpty ? 'Enter your name' : null),
+                    TextFormField(
+                      controller: _name,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: _inputDecoration('e.g. Sarah Jenkins'),
+                      validator: (value) => value == null || value.trim().isEmpty
+                          ? 'Enter a nickname'
+                          : null,
+                    ),
+                    if (_createAccount) ...[
+                      const SizedBox(height: 16),
+                      const _Label('Email Address'),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: _inputDecoration('hello@gardenlover.com'),
+                        validator: _validateEmail,
+                      ),
+                    ],
                     const SizedBox(height: 16),
                   ],
-                  const _Label('Email Address'),
-                  const SizedBox(height: 6),
-                  TextFormField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: _inputDecoration('hello@gardenlover.com'), validator: _validateEmail),
-                  const SizedBox(height: 16),
                   const _Label('Password'),
                   const SizedBox(height: 6),
                   TextFormField(
@@ -124,7 +112,11 @@ class _AuthScreenState extends State<AuthScreen> {
                     decoration: _inputDecoration('At least 8 characters').copyWith(
                       suffixIcon: IconButton(onPressed: () => setState(() => _obscurePassword = !_obscurePassword), icon: Icon(_obscurePassword ? Icons.lock_outline : Icons.lock_open_outlined, color: const Color(0xFF87968C))),
                     ),
-                    validator: (value) => value == null || value.length < 8 ? 'Use at least 8 characters' : null,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Enter a password'
+                        : _createAccount && value.length < 8
+                            ? 'Use at least 8 characters'
+                            : null,
                   ),
                   if (!_createAccount) Align(alignment: Alignment.centerRight, child: TextButton(onPressed: _forgotPassword, child: const Text('Forgot Password?', style: TextStyle(color: Color(0xFFE88964), decoration: TextDecoration.underline)))),
                   SizedBox(height: _createAccount ? 26 : 24),
