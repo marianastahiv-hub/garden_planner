@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/zones_screen.dart'; // Наш створений екран карт та ділянок
+import 'screens/zones_screen.dart'; 
 import 'screens/plants_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/tasks_screen.dart';
@@ -49,7 +49,7 @@ class MainNavigationWrapper extends StatefulWidget {
 }
 
 class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
-  // За замовчуванням відкриваємо екран Zones (індекс 1), який ми вже верстали
+  
   int _currentIndex = 0;
   bool _isAuthenticated = false;
   String _profileName = 'Sarah Jenkins';
@@ -120,7 +120,7 @@ Widget _screenForIndex(int index) {
         index: _currentIndex,
         children: List.generate(6, _screenForIndex),
       ),
-      // Нижнє меню точно як на твоїх скріншотах з Figma
+      
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (int index) {
