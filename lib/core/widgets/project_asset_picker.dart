@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Lets screens choose from image assets declared in pubspec.yaml.
+/// Показує вибір готового зображення з assets, оголошених у pubspec.yaml.
 class ProjectAssetPicker {
   ProjectAssetPicker._();
 

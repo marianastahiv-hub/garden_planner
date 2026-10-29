@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/garden_zone.dart';
 
+// Короткий перегляд інформації про зону з переходом до редагування.
 class ZoneDetailsSheet extends StatelessWidget {
   const ZoneDetailsSheet({
     super.key,

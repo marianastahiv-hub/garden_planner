@@ -7,6 +7,7 @@ const _green = Color(0xFF3F704F);
 const _ink = Color(0xFF1E3326);
 const _paper = Color(0xFFF9F9F7);
 
+// Головний екран: короткі лічильники та найближчі незавершені завдання.
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
     super.key,
@@ -30,6 +31,7 @@ class DashboardScreen extends StatelessWidget {
         child: AnimatedBuilder(
           animation: store,
           builder: (context, _) {
+            // Беремо тільки незавершене й показуємо найближчі дати першими.
             final tasks = store.tasks.where((task) => !task.isCompleted).toList()
               ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
             final upcoming = tasks.take(5).toList();

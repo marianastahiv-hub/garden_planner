@@ -1,3 +1,4 @@
+// Модель рослини, яку використовують каталог і дашборд.
 class GardenPlant {
   GardenPlant({
     required this.id,

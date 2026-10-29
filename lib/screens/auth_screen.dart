@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 const _green = Color(0xFF3F704F);
 const _paper = Color(0xFFF9F9F7);
 
+// Екран входу/реєстрації. Поки що працює локально, без сервера акаунтів.
 class AuthScreen extends StatefulWidget {
   const AuthScreen({
     super.key,
@@ -30,6 +31,7 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
+  // Перевіряємо поля форми й передаємо введені демо-дані головному віджету.
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     widget.onAuthenticated((
@@ -39,6 +41,7 @@ class _AuthScreenState extends State<AuthScreen> {
     ));
   }
 
+  // Фіктивний сценарій відновлення: модалка приймає email, лист не надсилається.
   Future<void> _forgotPassword() async {
     final email = await showModalBottomSheet<String>(
       context: context,

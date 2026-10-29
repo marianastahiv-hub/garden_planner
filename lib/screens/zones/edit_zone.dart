@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/garden_zone.dart';
 
 
+// Форма редагує поля зони; список рослин змінюється в окремому чеклісті.
 class EditZoneSheet extends StatefulWidget {
   const EditZoneSheet({super.key, required this.zone});
 

@@ -10,6 +10,7 @@ import 'zones/zone_details.dart';
 const _green = Color(0xFF3F704F);
 const _ink = Color(0xFF1E3326);
 
+// Найінтерактивніший екран: мапа, перетягування й зміна розміру зон.
 class ZonesScreen extends StatefulWidget {
   const ZonesScreen({super.key});
 
@@ -21,6 +22,7 @@ class _ZonesScreenState extends State<ZonesScreen> {
   bool _isMapView = true;
   List<GardenZone> get _zones => GardenStore.instance.zones;
 
+  // Після перетягування шукаємо вільне місце для зон, що перетнулися.
   void _separateOverlappingZones(
     GardenZone movedZone,
     double scale,

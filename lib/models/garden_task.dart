@@ -1,5 +1,7 @@
+// Рівень важливості завдання.
 enum TaskPriority { low, medium, high }
 
+// Дані завдання: текст, зона, дата та стан виконання.
 class GardenTask {
   GardenTask({
     required this.id,

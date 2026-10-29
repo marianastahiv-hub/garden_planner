@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Standard add action used by the Zones, Plants, and Gallery screens.
+/// Спільна кнопка «+», щоб вигляд і поведінка додавання були однаковими.
 class GardenAddFab extends StatelessWidget {
   const GardenAddFab({
     super.key,

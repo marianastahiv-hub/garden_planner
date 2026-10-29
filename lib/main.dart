@@ -9,9 +9,11 @@ import 'screens/profile_screen.dart';
 
 
 void main() {
+  // Точка входу: створюємо кореневий віджет застосунку.
   runApp(const GardenPlannerApp());
 }
 
+// Тут задаються тема програми й головний навігаційний контейнер.
 class GardenPlannerApp extends StatelessWidget {
   const GardenPlannerApp({super.key});
 
@@ -22,18 +24,17 @@ class GardenPlannerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        // Світлий фоновий колір як на макетах у Figma (колір слонової кістки/молочний)
+        // Світлий фоновий колір 
         scaffoldBackgroundColor: const Color(0xFFF9F9F7),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF2D5A43), // Темно-зелений акцентний колір
           primary: const Color(0xFF2D5A43),
-          secondary: const Color(0xFFE89A6C), // Оранжево-персиковий акцент
+          secondary: const Color(0xFFE89A6C), // Оранжевий акцент
           surface: const Color(0xFFF9F9F7),
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFFF9F9F7),
-          elevation: 0,
-          //scaffoldBackgroundColor: Color(0xFFF9F9F7),
+          elevation: 0
         ),
       ),
       home: const MainNavigationWrapper(),
@@ -49,7 +50,7 @@ class MainNavigationWrapper extends StatefulWidget {
 }
 
 class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
-  
+  // Індекс активної нижньої вкладки та тимчасові дані демо-профілю.
   int _currentIndex = 0;
   bool _isAuthenticated = false;
   String _profileName = 'Sarah Jenkins';
@@ -59,6 +60,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   // Список усіх 6 екранів застосунку
   String? _selectedGalleryPlant;
 
+// Повертає екран для кожної вкладки нижнього меню.
 Widget _screenForIndex(int index) {
   switch (index) {
     case 0:
@@ -91,19 +93,26 @@ Widget _screenForIndex(int index) {
         name: _profileName,
         email: _profileEmail,
         password: _profilePassword,
+        onNameChanged: (name) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || _profileName == name) return;
+            setState(() => _profileName = name);
+          });
+        },
         onPasswordChanged: (password) => setState(() => _profilePassword = password),
         onLogout: () => setState(() {
           _isAuthenticated = false;
           _currentIndex = 0;
         }),
       );
-    default:
-      return const PlaceholderScreen(title: 'Home');
+    default: 
+      return const SizedBox.shrink();
   }
 }
 
   @override
   Widget build(BuildContext context) {
+    // До входу показуємо авторизацію; після входу — вкладки застосунку.
     if (!_isAuthenticated) {
       return AuthScreen(
         onAuthenticated: (account) => setState(() {
@@ -117,11 +126,13 @@ Widget _screenForIndex(int index) {
     }
     return Scaffold(
       body: IndexedStack(
+        // IndexedStack зберігає стан вкладок, коли користувач переходить між ними.
         index: _currentIndex,
         children: List.generate(6, _screenForIndex),
       ),
       
       bottomNavigationBar: NavigationBar(
+        // Єдина нижня панель навігації для всіх основних екранів.
         selectedIndex: _currentIndex,
         onDestinationSelected: (int index) {
           setState(() {
@@ -167,43 +178,4 @@ Widget _screenForIndex(int index) {
   }
 }
 
-// Заглушка для екранів, які ми допишемо наступними
-class PlaceholderScreen extends StatelessWidget {
-  final String title;
-  const PlaceholderScreen({super.key, required this.title});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontFamily: 'Serif',
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1E3326),
-          ),
-        ),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.construction, size: 64, color: Color(0xFF2D5A43)),
-            const SizedBox(height: 16),
-            Text(
-              'Екран "$title"',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Готовий до додавання коду верстки з Figma',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

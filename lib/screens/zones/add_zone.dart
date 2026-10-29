@@ -6,6 +6,7 @@ const _green = Color(0xFF3F704F);
 const _paleGreen = Color(0xFFCFE6D5);
 const _ink = Color(0xFF1E3326);
 
+// Модальна форма створення зони та вибору рослин чеклістом.
 class AddZoneSheet extends StatefulWidget {
   const AddZoneSheet({super.key});
 

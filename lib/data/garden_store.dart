@@ -4,8 +4,10 @@ import '../models/garden_plant.dart';
 import '../models/garden_task.dart';
 import '../models/garden_zone.dart';
 
+// Спільне тимчасове сховище даних для вкладок. Дані не переживають перезапуск.
 class GardenStore extends ChangeNotifier {
   GardenStore._() {
+    // Демонстраційні приклади, щоб екрани не були порожні під час показу.
     final today = _dateOnly(DateTime.now());
     zones.addAll([
       _zone('1', 'Greenhouse', 'Sandy Loam', 240, const Color(0xFFA8C3A0), 16, 16, 145, 120,
@@ -35,12 +37,15 @@ class GardenStore extends ChangeNotifier {
     ]);
   }
 
+  // Singleton: усі екрани працюють з одним набором даних.
   static final GardenStore instance = GardenStore._();
   final List<GardenZone> zones = [];
   final List<GardenPlant> plants = [];
   final List<GardenTask> tasks = [];
 
+  // Сповіщає підписані екрани про зміну вже існуючого об'єкта.
   void changed() => notifyListeners();
+  // Методи нижче змінюють список і повідомляють віджети, що його показують.
   void addZone(GardenZone value) { zones.add(value); notifyListeners(); }
   void replaceZone(GardenZone value) { final i = zones.indexWhere((item) => item.id == value.id); if (i >= 0) zones[i] = value; notifyListeners(); }
   void addPlant(GardenPlant value) { plants.add(value); notifyListeners(); }
