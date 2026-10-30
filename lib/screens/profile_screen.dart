@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
 
 const _green = Color(0xFF3F704F);
 const _paper = Color(0xFFF9F9F7);
@@ -237,11 +239,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: const Text('Log Out'),
                   ),
                 ),
+                if (kDebugMode && !kIsWeb &&
+                    (defaultTargetPlatform == TargetPlatform.android ||
+                        defaultTargetPlatform == TargetPlatform.iOS)) ...[
+                  const SizedBox(height: 18),
+                  OutlinedButton.icon(
+                    onPressed: _sendTestCrashlyticsError,
+                    icon: const Icon(Icons.bug_report_outlined),
+                    label: const Text('Send test Crashlytics error'),
+                  ),
+                ],
               ],
             ),
           ),
         ),
       );
+
+  Future<void> _sendTestCrashlyticsError() async {
+    await FirebaseCrashlytics.instance.recordError(
+      StateError('Manual Crashlytics test from SproutPlan profile'),
+      StackTrace.current,
+      reason: 'User-triggered non-fatal test for the Firebase lab',
+      fatal: false,
+    );
+    if (mounted) _message('Test report queued. It may appear after restarting the app.');
+  }
 }
 
 class _EditNameDialog extends StatefulWidget {

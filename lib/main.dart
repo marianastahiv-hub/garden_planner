@@ -1,3 +1,8 @@
+import 'dart:ui';
+
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'screens/zones_screen.dart'; 
 import 'screens/plants_screen.dart';
@@ -18,6 +23,18 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // Crashlytics підтримується мобільними платформами. Під'єднуємо
+  // обробники для помилок Flutter та неперехоплених async-помилок.
+  final supportsCrashlytics = !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+  if (supportsCrashlytics) {
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
   runApp(const GardenPlannerApp());
 }
 
@@ -72,19 +89,17 @@ Widget _screenForIndex(int index, User user) {
     case 0:
       return DashboardScreen(
         userName: user.displayName ?? user.email?.split('@').first ?? 'Garden Keeper',
-        onOpenZones: () => setState(() => _currentIndex = 1),
-        onOpenPlants: () => setState(() => _currentIndex = 2),
-        onOpenTasks: () => setState(() => _currentIndex = 3),
+        onOpenZones: () => _selectTab(1),
+        onOpenPlants: () => _selectTab(2),
+        onOpenTasks: () => _selectTab(3),
       );
     case 1:
       return const ZonesScreen();
     case 2:
       return PlantsScreen(
         onViewGallery: (plantName) {
-          setState(() {
-            _selectedGalleryPlant = plantName;
-            _currentIndex = 4;
-          });
+          _selectedGalleryPlant = plantName;
+          _selectTab(4);
         },
       );
     case 3:
@@ -113,6 +128,17 @@ Widget _screenForIndex(int index, User user) {
   }
 }
 
+  void _selectTab(int index) {
+    setState(() => _currentIndex = index);
+    const screenNames = ['Home', 'Zones', 'Plants', 'Tasks', 'Gallery', 'Profile'];
+    FirebaseAnalytics.instance.logScreenView(
+      screenName: screenNames[index],
+      screenClass: 'MainNavigation',
+    ).catchError((Object error) {
+      debugPrint('Firebase Analytics screen event failed: $error');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // Firebase відновлює збережену сесію й повідомляє про вхід/вихід.
@@ -136,9 +162,7 @@ Widget _screenForIndex(int index, User user) {
         // Єдина нижня панель навігації для всіх основних екранів.
         selectedIndex: _currentIndex,
         onDestinationSelected: (int index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          _selectTab(index);
         },
         backgroundColor: Colors.white,
         indicatorColor: const Color(0xFF2D5A43).withOpacity(0.15),

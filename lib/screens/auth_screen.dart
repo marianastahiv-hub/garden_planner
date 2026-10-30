@@ -52,7 +52,8 @@ class _AuthScreenState extends State<AuthScreen> {
       // Подія надсилається лише після успішної відповіді Firebase Auth.
       try {
         await FirebaseAnalytics.instance.logEvent(
-          name: _createAccount ? 'sign_up_succeeded' : 'login_succeeded',
+          name: _createAccount ? 'sign_up' : 'login',
+          parameters: const {'method': 'email_password'},
         );
       } catch (error) {
         // Analytics не повинен зупиняти успішну авторизацію.
