@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "437482470581",
+    "project_id": "garden-planner-bb9c1",
+    "storage_bucket": "garden-planner-bb9c1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:437482470581:android:b65acbba623d6a61f152fc",
+        "android_client_info": {
+          "package_name": "com.example.garden_planner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdmFhzOmoPChnEP7MLGtVpRHIPbAQ-HoU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

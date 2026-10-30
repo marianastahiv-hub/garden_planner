@@ -6,10 +6,18 @@ import 'screens/tasks_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/profile_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
+import 'data/auth_repository.dart';
 
 
-void main() {
+Future<void> main() async {
   // Точка входу: створюємо кореневий віджет застосунку.
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const GardenPlannerApp());
 }
 
@@ -52,20 +60,18 @@ class MainNavigationWrapper extends StatefulWidget {
 class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   // Індекс активної нижньої вкладки та тимчасові дані демо-профілю.
   int _currentIndex = 0;
-  bool _isAuthenticated = false;
-  String _profileName = 'Sarah Jenkins';
-  String _profileEmail = 'sarah.j@gardenlover.com';
-  String _profilePassword = '';
+  final _authRepository = AuthRepository();
+  late final Stream<User?> _authChanges = _authRepository.authStateChanges;
 
   // Список усіх 6 екранів застосунку
   String? _selectedGalleryPlant;
 
 // Повертає екран для кожної вкладки нижнього меню.
-Widget _screenForIndex(int index) {
+Widget _screenForIndex(int index, User user) {
   switch (index) {
     case 0:
       return DashboardScreen(
-        userName: _profileName,
+        userName: user.displayName ?? user.email?.split('@').first ?? 'Garden Keeper',
         onOpenZones: () => setState(() => _currentIndex = 1),
         onOpenPlants: () => setState(() => _currentIndex = 2),
         onOpenTasks: () => setState(() => _currentIndex = 3),
@@ -90,20 +96,17 @@ Widget _screenForIndex(int index) {
       );
     case 5:
       return ProfileScreen(
-        name: _profileName,
-        email: _profileEmail,
-        password: _profilePassword,
-        onNameChanged: (name) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || _profileName == name) return;
-            setState(() => _profileName = name);
-          });
-        },
-        onPasswordChanged: (password) => setState(() => _profilePassword = password),
-        onLogout: () => setState(() {
-          _isAuthenticated = false;
-          _currentIndex = 0;
-        }),
+        name: user.displayName ?? user.email?.split('@').first ?? 'Garden Keeper',
+        email: user.email ?? '',
+        photoUrl: user.photoURL,
+        onNameChanged: _authRepository.updateDisplayName,
+        onPhotoChanged: _authRepository.updatePhotoUrl,
+        onPasswordChanged: (currentPassword, newPassword) =>
+            _authRepository.changePassword(
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+        ),
+        onLogout: () => _authRepository.signOut(),
       );
     default: 
       return const SizedBox.shrink();
@@ -112,23 +115,21 @@ Widget _screenForIndex(int index) {
 
   @override
   Widget build(BuildContext context) {
-    // До входу показуємо авторизацію; після входу — вкладки застосунку.
-    if (!_isAuthenticated) {
-      return AuthScreen(
-        onAuthenticated: (account) => setState(() {
-          _profileName = account.name;
-          _profileEmail = account.email;
-          _profilePassword = account.password;
-          _isAuthenticated = true;
-          _currentIndex = 0;
-        }),
-      );
-    }
-    return Scaffold(
+    // Firebase відновлює збережену сесію й повідомляє про вхід/вихід.
+    return StreamBuilder<User?>(
+      stream: _authChanges,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        final user = snapshot.data;
+        if (user == null) return const AuthScreen();
+
+        return Scaffold(
       body: IndexedStack(
         // IndexedStack зберігає стан вкладок, коли користувач переходить між ними.
         index: _currentIndex,
-        children: List.generate(6, _screenForIndex),
+        children: List.generate(6, (index) => _screenForIndex(index, user)),
       ),
       
       bottomNavigationBar: NavigationBar(
@@ -174,8 +175,11 @@ Widget _screenForIndex(int index) {
           ),
         ],
       ),
+        );
+      },
     );
   }
+
 }
 
 
