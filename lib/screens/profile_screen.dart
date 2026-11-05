@@ -33,6 +33,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _passwordFormKey = GlobalKey<FormState>();
   final _current = TextEditingController();
   final _next = TextEditingController();
   bool _hideCurrent = true;
@@ -121,10 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _changePassword() async {
-    if (_current.text.isEmpty || _next.text.length < 8) {
-      _message(_current.text.isEmpty ? 'Enter your current password.' : 'New password must have at least 8 characters.');
-      return;
-    }
+    if (!_passwordFormKey.currentState!.validate()) return;
     setState(() => _isSavingPassword = true);
     try {
       await widget.onPasswordChanged(_current.text, _next.text);
@@ -205,11 +203,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 38),
                 const Text('Change Password', style: TextStyle(fontFamily: 'Serif', fontSize: 21, color: _ink)),
                 const SizedBox(height: 18),
+                Form(
+                  key: _passwordFormKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                 const _FieldLabel('Current Password'),
                 const SizedBox(height: 6),
-                TextField(
+                TextFormField(
                   controller: _current,
                   obscureText: _hideCurrent,
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Enter your current password.'
+                      : null,
                   decoration: _decoration('Enter current password').copyWith(
                     suffixIcon: IconButton(onPressed: () => setState(() => _hideCurrent = !_hideCurrent), icon: Icon(_hideCurrent ? Icons.lock_outline : Icons.lock_open_outlined, color: const Color(0xFF87968C))),
                   ),
@@ -217,11 +223,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 14),
                 const _FieldLabel('New Password'),
                 const SizedBox(height: 6),
-                TextField(
+                TextFormField(
                   controller: _next,
                   obscureText: _hideNext,
+                  validator: (value) => value == null || value.length < 8
+                      ? 'Use at least 8 characters.'
+                      : null,
                   decoration: _decoration('At least 8 characters').copyWith(
                     suffixIcon: IconButton(onPressed: () => setState(() => _hideNext = !_hideNext), icon: Icon(_hideNext ? Icons.lock_outline : Icons.lock_open_outlined, color: const Color(0xFF87968C))),
+                  ),
+                ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 12),
