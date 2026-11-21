@@ -11,10 +11,7 @@ class ProjectAssetPicker {
     'images/tomato_growth.jpg',
   ];
 
-  static Future<String?> show(
-    BuildContext context, {
-    String? selectedAsset,
-  }) {
+  static Future<String?> show(BuildContext context, {String? selectedAsset}) {
     return showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,

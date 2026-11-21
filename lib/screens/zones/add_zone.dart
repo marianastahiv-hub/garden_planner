@@ -81,19 +81,22 @@ class _AddZoneSheetState extends State<AddZoneSheet> {
             _FieldLabel(
               label: 'Soil Type',
               child: DropdownButtonFormField<String>(
-                value: _soilType,
+                initialValue: _soilType,
                 decoration: _inputDecoration(null),
-                items: const [
-                  'Sandy Loam',
-                  'Rich Compost',
-                  'Clay Silt',
-                  'Mixed Soil',
-                  'Organic Mix',
-                  'Potting Mix',
-                ]
-                    .map((soil) =>
-                        DropdownMenuItem(value: soil, child: Text(soil)))
-                    .toList(),
+                items:
+                    const [
+                          'Sandy Loam',
+                          'Rich Compost',
+                          'Clay Silt',
+                          'Mixed Soil',
+                          'Organic Mix',
+                          'Potting Mix',
+                        ]
+                        .map(
+                          (soil) =>
+                              DropdownMenuItem(value: soil, child: Text(soil)),
+                        )
+                        .toList(),
                 onChanged: (value) {
                   if (value != null) setState(() => _soilType = value);
                 },
@@ -104,12 +107,14 @@ class _AddZoneSheetState extends State<AddZoneSheet> {
               label: 'Area Size',
               child: TextFormField(
                 controller: _areaController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: _inputDecoration('e.g. 150 sq m'),
                 validator: (value) {
-                  final area =
-                      double.tryParse((value ?? '').trim().replaceAll(',', '.'));
+                  final area = double.tryParse(
+                    (value ?? '').trim().replaceAll(',', '.'),
+                  );
                   if (area == null || area <= 0) return 'Enter a valid area';
                   return null;
                 },
@@ -185,19 +190,19 @@ class _AddZoneSheetState extends State<AddZoneSheet> {
 }
 
 InputDecoration _inputDecoration(String? hint) => InputDecoration(
-      hintText: hint,
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFDCE3DC)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFDCE3DC)),
-      ),
-    );
+  hintText: hint,
+  filled: true,
+  fillColor: Colors.white,
+  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+  border: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(10),
+    borderSide: const BorderSide(color: Color(0xFFDCE3DC)),
+  ),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(10),
+    borderSide: const BorderSide(color: Color(0xFFDCE3DC)),
+  ),
+);
 
 class _ZoneSheetFrame extends StatelessWidget {
   const _ZoneSheetFrame({required this.title, required this.child});
@@ -254,13 +259,13 @@ class _FieldLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: _ink)),
-          const SizedBox(height: 6),
-          child,
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: const TextStyle(fontSize: 12, color: _ink)),
+      const SizedBox(height: 6),
+      child,
+    ],
+  );
 }
 
 class _SheetActions extends StatelessWidget {
@@ -278,21 +283,18 @@ class _SheetActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: onCancel,
-              child: Text(cancelLabel),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: _green),
-              onPressed: onSave,
-              child: Text(saveLabel),
-            ),
-          ),
-        ],
-      );
+    children: [
+      Expanded(
+        child: OutlinedButton(onPressed: onCancel, child: Text(cancelLabel)),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _green),
+          onPressed: onSave,
+          child: Text(saveLabel),
+        ),
+      ),
+    ],
+  );
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../models/garden_zone.dart';
 
-
 // Форма редагує поля зони; список рослин змінюється в окремому чеклісті.
 class EditZoneSheet extends StatefulWidget {
   const EditZoneSheet({super.key, required this.zone});
@@ -34,8 +33,9 @@ class _EditZoneSheetState extends State<EditZoneSheet> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.zone.name);
-    _areaController =
-        TextEditingController(text: widget.zone.areaSqM.toStringAsFixed(0));
+    _areaController = TextEditingController(
+      text: widget.zone.areaSqM.toStringAsFixed(0),
+    );
     _soilType = widget.zone.soilType;
     _plants = Set<String>.from(widget.zone.plants);
   }
@@ -49,7 +49,9 @@ class _EditZoneSheetState extends State<EditZoneSheet> {
 
   void _save() {
     final name = _nameController.text.trim();
-    final area = double.tryParse(_areaController.text.trim().replaceAll(',', '.'));
+    final area = double.tryParse(
+      _areaController.text.trim().replaceAll(',', '.'),
+    );
     if (name.isEmpty || area == null || area <= 0) return;
 
     final updated = GardenZone(
@@ -116,19 +118,22 @@ class _EditZoneSheetState extends State<EditZoneSheet> {
             const SizedBox(height: 14),
             _label('Soil Type'),
             DropdownButtonFormField<String>(
-              value: _soilType,
+              initialValue: _soilType,
               decoration: decoration,
-              items: const [
-                'Sandy Loam',
-                'Rich Compost',
-                'Clay Silt',
-                'Mixed Soil',
-                'Organic Mix',
-                'Potting Mix',
-              ]
-                  .map((soil) =>
-                      DropdownMenuItem(value: soil, child: Text(soil)))
-                  .toList(),
+              items:
+                  const [
+                        'Sandy Loam',
+                        'Rich Compost',
+                        'Clay Silt',
+                        'Mixed Soil',
+                        'Organic Mix',
+                        'Potting Mix',
+                      ]
+                      .map(
+                        (soil) =>
+                            DropdownMenuItem(value: soil, child: Text(soil)),
+                      )
+                      .toList(),
               onChanged: (value) {
                 if (value != null) setState(() => _soilType = value);
               },
@@ -137,8 +142,9 @@ class _EditZoneSheetState extends State<EditZoneSheet> {
             _label('Area Size'),
             TextField(
               controller: _areaController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: decoration.copyWith(suffixText: 'sq m'),
             ),
             const SizedBox(height: 16),
@@ -151,14 +157,24 @@ class _EditZoneSheetState extends State<EditZoneSheet> {
               Wrap(
                 spacing: 6,
                 runSpacing: 7,
-                children: _plants.map((plant) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE3EEDF),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(plant, style: const TextStyle(fontSize: 11)),
-                )).toList(),
+                children: _plants
+                    .map(
+                      (plant) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE3EEDF),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          plant,
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                      ),
+                    )
+                    .toList(),
               ),
             const SizedBox(height: 20),
             SizedBox(
@@ -169,7 +185,7 @@ class _EditZoneSheetState extends State<EditZoneSheet> {
                   side: const BorderSide(color: Color(0xFF3F704F)),
                   padding: const EdgeInsets.symmetric(vertical: 13),
                 ),
-                onPressed:  _showPlantPicker,
+                onPressed: _showPlantPicker,
                 child: const Text('Edit Plants'),
               ),
             ),
@@ -201,47 +217,47 @@ class _EditZoneSheetState extends State<EditZoneSheet> {
   }
 
   Future<void> _showPlantPicker() async {
-  await showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (sheetContext) => StatefulBuilder(
-      builder: (context, setPickerState) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.all(20),
-          children: [
-            const Text(
-              'Pick Plants',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-            ),
-            ..._availablePlants.map(
-              (plant) => CheckboxListTile(
-                value: _plants.contains(plant),
-                title: Text(plant),
-                activeColor: const Color(0xFF3F704F),
-                onChanged: (selected) {
-                  setState(() {
-                    selected == true
-                        ? _plants.add(plant)
-                        : _plants.remove(plant);
-                  });
-                  setPickerState(() {});
-                },
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setPickerState) => SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.all(20),
+            children: [
+              const Text(
+                'Pick Plants',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
               ),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(sheetContext),
-              child: const Text('Done'),
-            ),
-          ],
+              ..._availablePlants.map(
+                (plant) => CheckboxListTile(
+                  value: _plants.contains(plant),
+                  title: Text(plant),
+                  activeColor: const Color(0xFF3F704F),
+                  onChanged: (selected) {
+                    setState(() {
+                      selected == true
+                          ? _plants.add(plant)
+                          : _plants.remove(plant);
+                    });
+                    setPickerState(() {});
+                  },
+                ),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(sheetContext),
+                child: const Text('Done'),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text(text, style: const TextStyle(fontSize: 12)),
-      );
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(text, style: const TextStyle(fontSize: 12)),
+  );
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/widgets/garden_add_fab.dart';
-import '../data/garden_store.dart';
+import '../features/garden/bloc/garden_bloc.dart';
+import '../features/garden/bloc/garden_event.dart';
+import '../features/garden/bloc/garden_state.dart';
 import '../models/garden_zone.dart';
 import 'zones/add_zone.dart';
 import 'zones/edit_zone.dart';
@@ -20,7 +23,7 @@ class ZonesScreen extends StatefulWidget {
 
 class _ZonesScreenState extends State<ZonesScreen> {
   bool _isMapView = true;
-  List<GardenZone> get _zones => GardenStore.instance.zones;
+  List<GardenZone> get _zones => context.read<GardenBloc>().state.zones;
 
   // Після перетягування шукаємо вільне місце для зон, що перетнулися.
   void _separateOverlappingZones(
@@ -32,70 +35,71 @@ class _ZonesScreenState extends State<ZonesScreen> {
     final logicalWidth = mapWidth / scale;
     final logicalHeight = mapHeight / scale;
 
-  for (final zone in _zones) {
-    if (identical(zone, movedZone)) continue;
+    for (final zone in _zones) {
+      if (identical(zone, movedZone)) continue;
 
-    if (_zonesOverlap(zone, movedZone)) {
-      final position = _findFreePosition(
-        zone,
-        logicalWidth,
-        mapHeight: logicalHeight,
-        ignore: zone,
-      );
+      if (_zonesOverlap(zone, movedZone)) {
+        final position = _findFreePosition(
+          zone,
+          logicalWidth,
+          mapHeight: logicalHeight,
+          ignore: zone,
+        );
 
-      if (position != null) {
-        zone.left = position.dx;
-        zone.top = position.dy;
+        if (position != null) {
+          zone.left = position.dx;
+          zone.top = position.dy;
+          context.read<GardenBloc>().add(GardenZoneUpdated(zone));
+        }
       }
     }
+
+    context.read<GardenBloc>().add(GardenZoneUpdated(movedZone));
   }
 
-  setState(() {});
-}
+  bool _zonesOverlap(GardenZone a, GardenZone b) {
+    final rectA = Rect.fromLTWH(a.left, a.top, a.width, a.height);
+    final rectB = Rect.fromLTWH(b.left, b.top, b.width, b.height);
+    return rectA.overlaps(rectB);
+  }
 
-bool _zonesOverlap(GardenZone a, GardenZone b) {
-  final rectA = Rect.fromLTWH(a.left, a.top, a.width, a.height);
-  final rectB = Rect.fromLTWH(b.left, b.top, b.width, b.height);
-  return rectA.overlaps(rectB);
-}
+  Offset? _findFreePosition(
+    GardenZone zone,
+    double mapWidth, {
+    required double mapHeight,
+    required GardenZone ignore,
+  }) {
+    const step = 24.0;
+    final maxLeft = (mapWidth - zone.width).clamp(0.0, mapWidth);
 
-Offset? _findFreePosition(
-  GardenZone zone,
-  double mapWidth, {
-  required double mapHeight,
-  required GardenZone ignore,
-}) {
-  const step = 24.0;
-  final maxLeft = (mapWidth - zone.width).clamp(0.0, mapWidth);
+    // Шукаємо найближче вільне місце праворуч, унизу, ліворуч і вгорі.
+    for (int radius = 1; radius <= 40; radius++) {
+      final candidates = <Offset>[
+        Offset(zone.left + step * radius, zone.top),
+        Offset(zone.left, zone.top + step * radius),
+        Offset(zone.left - step * radius, zone.top),
+        Offset(zone.left, zone.top - step * radius),
+      ];
 
-  // Шукаємо найближче вільне місце праворуч, унизу, ліворуч і вгорі.
-  for (int radius = 1; radius <= 40; radius++) {
-    final candidates = <Offset>[
-      Offset(zone.left + step * radius, zone.top),
-      Offset(zone.left, zone.top + step * radius),
-      Offset(zone.left - step * radius, zone.top),
-      Offset(zone.left, zone.top - step * radius),
-    ];
+      for (final candidate in candidates) {
+        final left = candidate.dx.clamp(0.0, maxLeft);
+        final maxTop = (mapHeight - zone.height).clamp(0.0, mapHeight);
+        final top = candidate.dy.clamp(0.0, maxTop);
+        final rect = Rect.fromLTWH(left, top, zone.width, zone.height);
 
-    for (final candidate in candidates) {
-      final left = candidate.dx.clamp(0.0, maxLeft);
-      final maxTop = (mapHeight - zone.height).clamp(0.0, mapHeight);
-      final top = candidate.dy.clamp(0.0, maxTop);
-      final rect = Rect.fromLTWH(left, top, zone.width, zone.height);
+        final overlapsAnother = _zones.any((other) {
+          if (identical(other, ignore)) return false;
+          return rect.overlaps(
+            Rect.fromLTWH(other.left, other.top, other.width, other.height),
+          );
+        });
 
-      final overlapsAnother = _zones.any((other) {
-        if (identical(other, ignore)) return false;
-        return rect.overlaps(
-          Rect.fromLTWH(other.left, other.top, other.width, other.height),
-        );
-      });
-
-      if (!overlapsAnother) return Offset(left, top);
+        if (!overlapsAnother) return Offset(left, top);
+      }
     }
-  }
 
-  return null;
-}
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,41 +108,47 @@ Offset? _findFreePosition(
       appBar: AppBar(
         title: const Text(
           'Garden Zones',
-          style: TextStyle(
-            fontFamily: 'Serif',
-            fontSize: 24,
-            color: _ink,
-          ),
+          style: TextStyle(fontFamily: 'Serif', fontSize: 24, color: _ink),
         ),
       ),
-      body: _isMapView ? _buildMapView() : _buildListView(),
+      body: BlocBuilder<GardenBloc, GardenState>(
+        builder: (context, state) {
+          if (state.status == GardenStatus.loading ||
+              state.status == GardenStatus.initial) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return _isMapView
+              ? _buildMapView(state.zones)
+              : _buildListView(state.zones);
+        },
+      ),
       floatingActionButton: SizedBox(
-  width: MediaQuery.sizeOf(context).width - 32,
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      FloatingActionButton(
-        heroTag: 'toggle_zone_view',
-        backgroundColor: const Color(0xFFE89A6C),
-        foregroundColor: Colors.white,
-        onPressed: () => setState(() => _isMapView = !_isMapView),
-        child: Icon(
-          _isMapView ? Icons.format_list_bulleted : Icons.map_outlined,
+        width: MediaQuery.sizeOf(context).width - 32,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            FloatingActionButton(
+              heroTag: 'toggle_zone_view',
+              backgroundColor: const Color(0xFFE89A6C),
+              foregroundColor: Colors.white,
+              onPressed: () => setState(() => _isMapView = !_isMapView),
+              child: Icon(
+                _isMapView ? Icons.format_list_bulleted : Icons.map_outlined,
+              ),
+            ),
+            GardenAddFab(
+              heroTag: 'add_zone',
+              tooltip: 'Add zone',
+              onPressed: _addZone,
+            ),
+          ],
         ),
       ),
-      GardenAddFab(
-        heroTag: 'add_zone',
-        tooltip: 'Add zone',
-        onPressed: _addZone,
-      ),
-    ],
-  ),
-),
-floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
-  Widget _buildMapView() {
+  Widget _buildMapView(List<GardenZone> zones) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final scale = (constraints.maxWidth / 360).clamp(0.72, 1.0);
@@ -154,13 +164,11 @@ floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
               child: CustomPaint(
                 painter: _DotGridPainter(),
                 child: Stack(
-                  children: _zones
-                      .map((zone) => _buildZoneTile(
-                            zone,
-                            scale,
-                            mapWidth,
-                            mapHeight,
-                          ))
+                  children: zones
+                      .map(
+                        (zone) =>
+                            _buildZoneTile(zone, scale, mapWidth, mapHeight),
+                      )
                       .toList(),
                 ),
               ),
@@ -195,22 +203,26 @@ floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
               onTap: () => _showZoneDetails(zone),
               onPanUpdate: (details) {
                 setState(() {
-                  final maxLeft =
-                      (mapWidth / scale - zone.width).clamp(0.0, 1200.0);
-                  final maxTop =
-                      (mapHeight / scale - zone.height).clamp(0.0, 1200.0);
-                  zone.left =
-                      (zone.left + details.delta.dx / scale).clamp(0.0, maxLeft);
-                  zone.top =
-                      (zone.top + details.delta.dy / scale).clamp(0.0, maxTop);
+                  final maxLeft = (mapWidth / scale - zone.width).clamp(
+                    0.0,
+                    1200.0,
+                  );
+                  final maxTop = (mapHeight / scale - zone.height).clamp(
+                    0.0,
+                    1200.0,
+                  );
+                  zone.left = (zone.left + details.delta.dx / scale).clamp(
+                    0.0,
+                    maxLeft,
+                  );
+                  zone.top = (zone.top + details.delta.dy / scale).clamp(
+                    0.0,
+                    maxTop,
+                  );
                 });
               },
-              onPanEnd: (_) => _separateOverlappingZones(
-                zone,
-                scale,
-                mapWidth,
-                mapHeight,
-              ),
+              onPanEnd: (_) =>
+                  _separateOverlappingZones(zone, scale, mapWidth, mapHeight),
               child: Container(
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
@@ -267,16 +279,26 @@ floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
             child: GestureDetector(
               onPanUpdate: (details) {
                 setState(() {
-                  final maxWidth =
-                      (mapWidth / scale - zone.left).clamp(80.0, 340.0);
-                  final maxHeight =
-                      (mapHeight / scale - zone.top).clamp(65.0, 500.0);
-                  zone.width =
-                      (zone.width + details.delta.dx / scale).clamp(80.0, maxWidth);
-                  zone.height =
-                      (zone.height + details.delta.dy / scale).clamp(65.0, maxHeight);
+                  final maxWidth = (mapWidth / scale - zone.left).clamp(
+                    80.0,
+                    340.0,
+                  );
+                  final maxHeight = (mapHeight / scale - zone.top).clamp(
+                    65.0,
+                    500.0,
+                  );
+                  zone.width = (zone.width + details.delta.dx / scale).clamp(
+                    80.0,
+                    maxWidth,
+                  );
+                  zone.height = (zone.height + details.delta.dy / scale).clamp(
+                    65.0,
+                    maxHeight,
+                  );
                 });
               },
+              onPanEnd: (_) =>
+                  context.read<GardenBloc>().add(GardenZoneUpdated(zone)),
               child: Container(
                 width: 22,
                 height: 22,
@@ -297,13 +319,13 @@ floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
-  Widget _buildListView() {
+  Widget _buildListView(List<GardenZone> zones) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: _zones.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemCount: zones.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
-        final zone = _zones[index];
+        final zone = zones[index];
         return InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: () => _showZoneDetails(zone),
@@ -381,7 +403,7 @@ floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
 
     if (zone != null && mounted) {
-      setState(() => GardenStore.instance.addZone(zone));
+      context.read<GardenBloc>().add(GardenZoneAdded(zone));
     }
   }
 
@@ -395,6 +417,10 @@ floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       ),
       builder: (sheetContext) => ZoneDetailsSheet(
         zone: zone,
+        onDelete: () {
+          context.read<GardenBloc>().add(GardenZoneRemoved(zone.id));
+          Navigator.pop(sheetContext);
+        },
         onEdit: () async {
           Navigator.pop(sheetContext);
           await _editZone(zone);
@@ -415,9 +441,7 @@ floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
 
     if (updated != null && mounted) {
-      setState(() {
-        GardenStore.instance.replaceZone(updated);
-      });
+      context.read<GardenBloc>().add(GardenZoneUpdated(updated));
     }
   }
 }

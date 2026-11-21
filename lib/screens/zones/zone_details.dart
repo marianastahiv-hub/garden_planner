@@ -8,10 +8,12 @@ class ZoneDetailsSheet extends StatelessWidget {
     super.key,
     required this.zone,
     required this.onEdit,
+    required this.onDelete,
   });
 
   final GardenZone zone;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +59,10 @@ class ZoneDetailsSheet extends StatelessWidget {
               spacing: 8,
               children: [
                 _infoChip(Icons.terrain_outlined, zone.soilType),
-                _infoChip(Icons.straighten, '${zone.areaSqM.toStringAsFixed(0)} sq m'),
+                _infoChip(
+                  Icons.straighten,
+                  '${zone.areaSqM.toStringAsFixed(0)} sq m',
+                ),
               ],
             ),
             const SizedBox(height: 18),
@@ -76,31 +81,35 @@ class ZoneDetailsSheet extends StatelessWidget {
                 spacing: 6,
                 runSpacing: 6,
                 children: zone.plants
-                    .map((plant) => Chip(
-                          label: Text(plant),
-                          backgroundColor: const Color(0xFFE3EEDF),
-                          visualDensity: VisualDensity.compact,
-                        ))
+                    .map(
+                      (plant) => Chip(
+                        label: Text(plant),
+                        backgroundColor: const Color(0xFFE3EEDF),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    )
                     .toList(),
               ),
             const SizedBox(height: 20),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onEdit,
-                    child: const Text('Edit Block'),
-                  ),
+                TextButton.icon(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Delete'),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF3F704F),
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Done'),
+                OutlinedButton(
+                  onPressed: onEdit,
+                  child: const Text('Edit Block'),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF3F704F),
                   ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Done'),
                 ),
               ],
             ),
@@ -111,9 +120,9 @@ class ZoneDetailsSheet extends StatelessWidget {
   }
 
   Widget _infoChip(IconData icon, String text) => Chip(
-        avatar: Icon(icon, size: 15),
-        label: Text(text),
-        visualDensity: VisualDensity.compact,
-        backgroundColor: const Color(0xFFF3F4F0),
-      );
+    avatar: Icon(icon, size: 15),
+    label: Text(text),
+    visualDensity: VisualDensity.compact,
+    backgroundColor: const Color(0xFFF3F4F0),
+  );
 }

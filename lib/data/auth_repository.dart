@@ -1,66 +1,50 @@
-import 'package:firebase_auth/firebase_auth.dart';
+/// User identity exposed to presentation and business-logic layers.
+/// It intentionally contains no Firebase types.
+class AuthUser {
+  const AuthUser({
+    required this.id,
+    required this.email,
+    this.displayName,
+    this.photoUrl,
+  });
 
-/// Збирає Firebase Auth-виклики окремо від UI.
-class AuthRepository {
-  AuthRepository({FirebaseAuth? auth}) : _auth = auth ?? FirebaseAuth.instance;
+  final String id;
+  final String email;
+  final String? displayName;
+  final String? photoUrl;
+}
 
-  final FirebaseAuth _auth;
+/// Stable application-level error. Data adapters translate provider-specific
+/// errors into this type before they reach a Bloc or a widget.
+class AuthFailure implements Exception {
+  const AuthFailure(this.code, this.message);
 
-  Stream<User?> get authStateChanges => _auth.userChanges();
-  User? get currentUser => _auth.currentUser;
+  final String code;
+  final String message;
 
-  Future<UserCredential> signUp({
+  @override
+  String toString() => message;
+}
+
+/// Contract for account operations. Firebase, mock or another provider can
+/// implement it without changing UI or Bloc code.
+abstract interface class AuthRepository {
+  Stream<AuthUser?> get authStateChanges;
+  AuthUser? get currentUser;
+
+  Future<AuthUser> signUp({
     required String name,
     required String email,
     required String password,
-  }) async {
-    final credential = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
-      password: password,
-    );
-    await credential.user?.updateDisplayName(name.trim());
-    return credential;
-  }
+  });
 
-  Future<UserCredential> signIn({
-    required String email,
-    required String password,
-  }) {
-    return _auth.signInWithEmailAndPassword(
-      email: email.trim(),
-      password: password,
-    );
-  }
-
-  Future<void> sendPasswordResetEmail({required String email}) {
-    return _auth.sendPasswordResetEmail(email: email.trim());
-  }
-
-  Future<void> signOut() => _auth.signOut();
-
-  Future<void> updateDisplayName(String name) async {
-    await _auth.currentUser?.updateDisplayName(name.trim());
-  }
-
-  Future<void> updatePhotoUrl(String photoUrl) async {
-    await _auth.currentUser?.updatePhotoURL(photoUrl);
-  }
-
+  Future<AuthUser> signIn({required String email, required String password});
+  Future<void> sendPasswordResetEmail({required String email});
+  Future<void> signOut();
+  Future<void> updateDisplayName(String name);
+  Future<void> updatePhotoUrl(String photoUrl);
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
-  }) async {
-    final user = _auth.currentUser;
-    final email = user?.email;
-    if (user == null || email == null) {
-      throw FirebaseAuthException(code: 'user-not-found');
-    }
-
-    final credential = EmailAuthProvider.credential(
-      email: email,
-      password: currentPassword,
-    );
-    await user.reauthenticateWithCredential(credential);
-    await user.updatePassword(newPassword);
-  }
+  });
 }

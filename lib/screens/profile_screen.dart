@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../features/auth/bloc/auth_bloc.dart';
+import '../features/auth/bloc/auth_state.dart';
+import '../data/telemetry_repository.dart';
 
 const _green = Color(0xFF3F704F);
 const _paper = Color(0xFFF9F9F7);
@@ -24,9 +27,10 @@ class ProfileScreen extends StatefulWidget {
   final String email;
   final String? photoUrl;
   final VoidCallback onLogout;
-  final Future<void> Function(String currentPassword, String newPassword) onPasswordChanged;
-  final Future<void> Function(String name) onNameChanged;
-  final Future<void> Function(String photoUrl) onPhotoChanged;
+  final void Function(String currentPassword, String newPassword)
+  onPasswordChanged;
+  final ValueChanged<String> onNameChanged;
+  final ValueChanged<String> onPhotoChanged;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -39,8 +43,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _hideCurrent = true;
   bool _hideNext = true;
   late String _displayName;
-  bool _isSavingPassword = false;
-  bool _isSavingProfile = false;
 
   @override
   void initState() {
@@ -61,19 +63,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (_) => _EditNameDialog(initialName: _displayName),
     );
     if (updatedName == null || !mounted) return;
-    setState(() => _isSavingProfile = true);
-    try {
-      await widget.onNameChanged(updatedName);
-      if (!mounted) return;
-      setState(() => _displayName = updatedName);
-      _message('Name updated.');
-    } on FirebaseAuthException catch (error) {
-      _message(_authMessage(error.code));
-    } catch (_) {
-      _message('Could not update name. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isSavingProfile = false);
-    }
+    setState(() => _displayName = updatedName);
+    widget.onNameChanged(updatedName);
   }
 
   Future<void> _choosePhoto() async {
@@ -88,30 +79,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Choose a profile photo', style: TextStyle(fontFamily: 'Serif', fontSize: 21, color: _ink)),
-            const SizedBox(height: 18),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: photos.map((url) => GestureDetector(
-              onTap: () => Navigator.pop(context, url),
-              child: CircleAvatar(radius: 35, backgroundImage: NetworkImage(url)),
-            )).toList()),
-            const SizedBox(height: 8),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Choose a profile photo',
+                style: TextStyle(
+                  fontFamily: 'Serif',
+                  fontSize: 21,
+                  color: _ink,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: photos
+                    .map(
+                      (url) => GestureDetector(
+                        onTap: () => Navigator.pop(context, url),
+                        child: CircleAvatar(
+                          radius: 35,
+                          backgroundImage: NetworkImage(url),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
     if (selected == null || !mounted) return;
-    setState(() => _isSavingProfile = true);
-    try {
-      await widget.onPhotoChanged(selected);
-      if (mounted) _message('Profile photo updated.');
-    } on FirebaseAuthException catch (error) {
-      if (mounted) _message(_authMessage(error.code));
-    } catch (_) {
-      if (mounted) _message('Could not update profile photo. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isSavingProfile = false);
-    }
+    widget.onPhotoChanged(selected);
   }
 
   @override
@@ -123,20 +125,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _changePassword() async {
     if (!_passwordFormKey.currentState!.validate()) return;
-    setState(() => _isSavingPassword = true);
-    try {
-      await widget.onPasswordChanged(_current.text, _next.text);
-      if (!mounted) return;
-      _current.clear();
-      _next.clear();
-      _message('Password updated.');
-    } on FirebaseAuthException catch (error) {
-      _message(_authMessage(error.code));
-    } catch (_) {
-      _message('Could not update password. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isSavingPassword = false);
-    }
+    widget.onPasswordChanged(_current.text, _next.text);
+    _current.clear();
+    _next.clear();
   }
 
   void _message(String message) => ScaffoldMessenger.of(context)
@@ -144,11 +135,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ..showSnackBar(SnackBar(content: Text(message)));
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    final isBusy = context.select<AuthBloc, bool>(
+      (bloc) => bloc.state.status == AuthStatus.submitting,
+    );
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (previous, current) => previous.revision != current.revision,
+      listener: (context, state) {
+        if (state.message != null) _message(state.message!);
+      },
+      child: Scaffold(
         backgroundColor: _paper,
         appBar: AppBar(
           backgroundColor: _paper,
-          title: const Text('Profile', style: TextStyle(fontFamily: 'Serif', fontSize: 25, color: _ink)),
+          title: const Text(
+            'Profile',
+            style: TextStyle(fontFamily: 'Serif', fontSize: 25, color: _ink),
+          ),
         ),
         body: SafeArea(
           top: false,
@@ -160,21 +163,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Center(
                   child: Column(
                     children: [
-                      Stack(alignment: Alignment.bottomRight, children: [
-                        CircleAvatar(
-                          radius: 48,
-                          backgroundColor: const Color(0xFFE4EEE6),
-                          backgroundImage: widget.photoUrl == null ? null : NetworkImage(widget.photoUrl!),
-                          child: widget.photoUrl == null ? const Icon(Icons.person, size: 54, color: _green) : null,
+                      Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 48,
+                            backgroundColor: const Color(0xFFE4EEE6),
+                            backgroundImage: widget.photoUrl == null
+                                ? null
+                                : NetworkImage(widget.photoUrl!),
+                            child: widget.photoUrl == null
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 54,
+                                    color: _green,
+                                  )
+                                : null,
+                          ),
+                          IconButton.filled(
+                            onPressed: isBusy ? null : _choosePhoto,
+                            tooltip: 'Choose profile photo',
+                            icon: const Icon(
+                              Icons.camera_alt_outlined,
+                              size: 17,
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: _green,
+                              foregroundColor: Colors.white,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (isBusy)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: LinearProgressIndicator(minHeight: 2),
                         ),
-                        IconButton.filled(
-                          onPressed: _isSavingProfile ? null : _choosePhoto,
-                          tooltip: 'Choose profile photo',
-                          icon: const Icon(Icons.camera_alt_outlined, size: 17),
-                          style: IconButton.styleFrom(backgroundColor: _green, foregroundColor: Colors.white, visualDensity: VisualDensity.compact),
-                        ),
-                      ]),
-                      if (_isSavingProfile) const Padding(padding: EdgeInsets.only(top: 6), child: LinearProgressIndicator(minHeight: 2)),
                       SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -184,74 +209,127 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               _displayName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontFamily: 'Serif', fontSize: 23, color: _ink),
+                              style: const TextStyle(
+                                fontFamily: 'Serif',
+                                fontSize: 23,
+                                color: _ink,
+                              ),
                             ),
                           ),
                           IconButton(
                             tooltip: 'Edit name',
                             onPressed: _editName,
                             visualDensity: VisualDensity.compact,
-                            icon: const Icon(Icons.edit_outlined, size: 18, color: _green),
+                            icon: const Icon(
+                              Icons.edit_outlined,
+                              size: 18,
+                              color: _green,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 3),
-                      Text(widget.email, style: const TextStyle(color: Color(0xFF68766D))),
+                      Text(
+                        widget.email,
+                        style: const TextStyle(color: Color(0xFF68766D)),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 38),
-                const Text('Change Password', style: TextStyle(fontFamily: 'Serif', fontSize: 21, color: _ink)),
+                const Text(
+                  'Change Password',
+                  style: TextStyle(
+                    fontFamily: 'Serif',
+                    fontSize: 21,
+                    color: _ink,
+                  ),
+                ),
                 const SizedBox(height: 18),
                 Form(
                   key: _passwordFormKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                const _FieldLabel('Current Password'),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _current,
-                  obscureText: _hideCurrent,
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Enter your current password.'
-                      : null,
-                  decoration: _decoration('Enter current password').copyWith(
-                    suffixIcon: IconButton(onPressed: () => setState(() => _hideCurrent = !_hideCurrent), icon: Icon(_hideCurrent ? Icons.lock_outline : Icons.lock_open_outlined, color: const Color(0xFF87968C))),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const _FieldLabel('New Password'),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _next,
-                  obscureText: _hideNext,
-                  validator: (value) => value == null || value.length < 8
-                      ? 'Use at least 8 characters.'
-                      : null,
-                  decoration: _decoration('At least 8 characters').copyWith(
-                    suffixIcon: IconButton(onPressed: () => setState(() => _hideNext = !_hideNext), icon: Icon(_hideNext ? Icons.lock_outline : Icons.lock_open_outlined, color: const Color(0xFF87968C))),
-                  ),
-                ),
+                      const _FieldLabel('Current Password'),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _current,
+                        obscureText: _hideCurrent,
+                        validator: (value) => value == null || value.isEmpty
+                            ? 'Enter your current password.'
+                            : null,
+                        decoration: _decoration('Enter current password')
+                            .copyWith(
+                              suffixIcon: IconButton(
+                                onPressed: () => setState(
+                                  () => _hideCurrent = !_hideCurrent,
+                                ),
+                                icon: Icon(
+                                  _hideCurrent
+                                      ? Icons.lock_outline
+                                      : Icons.lock_open_outlined,
+                                  color: const Color(0xFF87968C),
+                                ),
+                              ),
+                            ),
+                      ),
+                      const SizedBox(height: 14),
+                      const _FieldLabel('New Password'),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _next,
+                        obscureText: _hideNext,
+                        validator: (value) => value == null || value.length < 8
+                            ? 'Use at least 8 characters.'
+                            : null,
+                        decoration: _decoration('At least 8 characters')
+                            .copyWith(
+                              suffixIcon: IconButton(
+                                onPressed: () =>
+                                    setState(() => _hideNext = !_hideNext),
+                                icon: Icon(
+                                  _hideNext
+                                      ? Icons.lock_outline
+                                      : Icons.lock_open_outlined,
+                                  color: const Color(0xFF87968C),
+                                ),
+                              ),
+                            ),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
                 FilledButton.tonal(
-                  onPressed: _isSavingPassword ? null : _changePassword,
-                  style: FilledButton.styleFrom(foregroundColor: _green, backgroundColor: const Color(0xFFE7F0E9)),
-                  child: _isSavingPassword ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Update Password'),
+                  onPressed: isBusy ? null : _changePassword,
+                  style: FilledButton.styleFrom(
+                    foregroundColor: _green,
+                    backgroundColor: const Color(0xFFE7F0E9),
+                  ),
+                  child: isBusy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Update Password'),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: widget.onLogout,
-                    style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFE88964), side: const BorderSide(color: Color(0xFFE88964)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFE88964),
+                      side: const BorderSide(color: Color(0xFFE88964)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
                     child: const Text('Log Out'),
                   ),
                 ),
-                if (kDebugMode && !kIsWeb &&
+                if (kDebugMode &&
+                    !kIsWeb &&
                     (defaultTargetPlatform == TargetPlatform.android ||
                         defaultTargetPlatform == TargetPlatform.iOS)) ...[
                   const SizedBox(height: 18),
@@ -265,16 +343,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 
   Future<void> _sendTestCrashlyticsError() async {
-    await FirebaseCrashlytics.instance.recordError(
+    await context.read<TelemetryRepository>().recordError(
       StateError('Manual Crashlytics test from SproutPlan profile'),
       StackTrace.current,
-      reason: 'User-triggered non-fatal test for the Firebase lab',
       fatal: false,
     );
-    if (mounted) _message('Test report queued. It may appear after restarting the app.');
+    if (mounted) {
+      _message('Test report queued. It may appear after restarting the app.');
+    }
   }
 }
 
@@ -303,22 +384,22 @@ class _EditNameDialogState extends State<_EditNameDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Edit Name'),
-        content: TextField(
-          controller: _controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Name'),
-          onSubmitted: (_) => _save(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(onPressed: _save, child: const Text('Save')),
-        ],
-      );
+    title: const Text('Edit Name'),
+    content: TextField(
+      controller: _controller,
+      autofocus: true,
+      textCapitalization: TextCapitalization.words,
+      decoration: const InputDecoration(labelText: 'Name'),
+      onSubmitted: (_) => _save(),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(onPressed: _save, child: const Text('Save')),
+    ],
+  );
 
   void _save() {
     final name = _controller.text.trim();
@@ -332,23 +413,27 @@ class _FieldLabel extends StatelessWidget {
   const _FieldLabel(this.text);
   final String text;
   @override
-  Widget build(BuildContext context) => Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF59635B)));
+  Widget build(BuildContext context) => Text(
+    text,
+    style: const TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: Color(0xFF59635B),
+    ),
+  );
 }
 
 InputDecoration _decoration(String hint) => InputDecoration(
-      hintText: hint,
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDCE4DC))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDCE4DC))),
-    );
-
-String _authMessage(String code) => switch (code) {
-      'wrong-password' || 'invalid-credential' => 'Current password is incorrect.',
-      'requires-recent-login' => 'Please sign out and sign in again, then retry this change.',
-      'weak-password' => 'Choose a stronger password with at least 8 characters.',
-      'network-request-failed' => 'Check your internet connection and try again.',
-      'user-not-found' => 'Could not find the signed-in account. Please sign in again.',
-      _ => 'Could not update your account. Please try again.',
-    };
+  hintText: hint,
+  filled: true,
+  fillColor: Colors.white,
+  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+  border: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(12),
+    borderSide: const BorderSide(color: Color(0xFFDCE4DC)),
+  ),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(12),
+    borderSide: const BorderSide(color: Color(0xFFDCE4DC)),
+  ),
+);
